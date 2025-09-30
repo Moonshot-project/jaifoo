@@ -1,5 +1,7 @@
 "use server"
 
+import axios, { AxiosError } from 'axios'
+
 interface ApiResultResponse {
     code: number
     data: {
@@ -58,15 +60,6 @@ interface UserQuizResults {
 }
 
 /**
- * Creates AbortController with 5-minute timeout
- */
-function createTimeoutController(timeoutMs = 300000): AbortController {
-    const controller = new AbortController()
-    setTimeout(() => controller.abort(), timeoutMs)
-    return controller
-}
-
-/**
  * Sanitizes token for logging (shows first 8 chars + length)
  */
 function sanitizeTokenForLogging(token: string): string {
@@ -77,89 +70,38 @@ export async function fetchResults(
     token: string,
     questionAndAnswer: UserQuizResults["question_and_answer"],
 ): Promise<{ success: boolean; data?: ApiResultResponse; error?: string }> {
-    const controller = createTimeoutController()
     const startTime = Date.now()
 
     try {
-        if (!token) {
+        if (!token?.trim()) {
             console.warn("fetchResults: No authentication token provided")
             return { success: false, error: "No authentication token provided" }
         }
 
-        console.log("[v0] Server: Starting results fetch with 5-minute timeout")
+        console.log("[v0] Server: Starting results fetch with timeout")
         console.log("[v0] Server: Token info:", sanitizeTokenForLogging(token))
         console.log("[v0] Server: Fetching results from API with data:", questionAndAnswer)
 
-        const response = await fetch(`${process.env.BACKEND_API_SERVER}api/model/interpret-result/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-                Accept: "application/json",
-            },
-            body: JSON.stringify({
+        const response = await axios.post<ApiResultResponse>(
+            `${process.env.BACKEND_API_SERVER}/api/model/interpret-result/`,
+            {
                 question_and_answer: questionAndAnswer,
-            }),
-            signal: controller.signal,
-        })
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token.trim()}`,
+                    'Accept': 'application/json',
+                },
+                timeout: parseInt(process.env.MAXIMUM_API_TIMEOUT || '30000'),
+            }
+        )
 
         const requestDuration = Date.now() - startTime
         console.log(`[v0] Server: Response received after ${requestDuration}ms, status: ${response.status}`)
         console.log("response", response)
 
-        if (!response.ok) {
-            let errorMessage: string
-            let errorResponseText = ""
-
-            try {
-                errorResponseText = await response.text()
-                console.log("[v0] Server: Error response text:", errorResponseText)
-                errorMessage = errorResponseText || `HTTP ${response.status}: ${response.statusText}`
-            } catch {
-                errorMessage = `HTTP ${response.status}: ${response.statusText}`
-            }
-
-            console.error("[v0] Server: API request failed:", {
-                status: response.status,
-                statusText: response.statusText,
-                error: errorMessage,
-                duration: requestDuration,
-            })
-
-            return {
-                success: false,
-                error: `API request failed (${response.status}): ${errorMessage}`,
-            }
-        }
-
-        // Get and parse response
-        let responseText: string
-        try {
-            responseText = await response.text()
-            console.log("[v0] Server: Response text length:", responseText.length)
-        } catch (textError) {
-            console.error("[v0] Server: Failed to read response text:", textError)
-            return {
-                success: false,
-                error: "Failed to read response from server",
-            }
-        }
-
-        let data: ApiResultResponse
-        try {
-            data = JSON.parse(responseText)
-            console.log("[v0] Server: Successfully parsed JSON response")
-        } catch (parseError) {
-            console.error("[v0] Server: JSON parse error:", parseError)
-            console.error(
-                "[v0] Server: Failed to parse response text:",
-                responseText.substring(0, 500) + (responseText.length > 500 ? "..." : ""),
-            )
-            return {
-                success: false,
-                error: "Invalid JSON response from server",
-            }
-        }
+        const data = response.data
 
         console.log("[v0] Server: Results API response:", data)
         console.log("[v0] Server: API response metadata:", {
@@ -213,15 +155,49 @@ export async function fetchResults(
     } catch (error) {
         const requestDuration = Date.now() - startTime
 
-        if (error instanceof Error) {
-            if (error.name === "AbortError") {
-                console.error(`[v0] Server: Request timeout after ${requestDuration}ms (5 minutes)`)
+        if (axios.isAxiosError(error)) {
+            const axiosError = error as AxiosError<ApiResultResponse>
+
+            if (axiosError.code === 'ECONNABORTED') {
+                console.error(`[v0] Server: Request timeout after ${requestDuration}ms`)
                 return {
                     success: false,
-                    error: "Request timed out after 5 minutes - please try again",
+                    error: "Request timed out - please try again"
                 }
             }
 
+            if (axiosError.response) {
+                const errorData = axiosError.response.data
+                console.error("[v0] Server: API request failed:", {
+                    status: axiosError.response.status,
+                    statusText: axiosError.response.statusText,
+                    data: errorData,
+                    duration: requestDuration,
+                })
+
+                const errorMsg = errorData?.message ||
+                    (errorData?.errors && errorData.errors.length > 0 ? errorData.errors.join(', ') : '') ||
+                    `API request failed (${axiosError.response.status})`
+
+                return {
+                    success: false,
+                    error: errorMsg,
+                }
+            }
+
+            console.error("[v0] Server: Network error:", {
+                message: axiosError.message,
+                code: axiosError.code,
+                duration: requestDuration,
+            })
+
+            return {
+                success: false,
+                error: `Network error: ${axiosError.message}`,
+            }
+        }
+
+        if (error instanceof Error) {
             console.error("[v0] Server: Request failed:", {
                 name: error.name,
                 message: error.message,
@@ -231,14 +207,14 @@ export async function fetchResults(
 
             return {
                 success: false,
-                error: `Network error: ${error.message}`,
+                error: `Request failed: ${error.message}`,
             }
         }
 
         console.error("[v0] Server: Failed to fetch results from API:", error)
         return {
             success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
+            error: "An unexpected error occurred",
         }
     }
 }

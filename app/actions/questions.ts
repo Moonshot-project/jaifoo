@@ -105,7 +105,7 @@ export async function fetchQuestions(token: string): Promise<FetchQuestionsResul
                     'Authorization': `Bearer ${token.trim()}`,
                     'Accept': 'application/json',
                 },
-                timeout: 300000,
+                timeout: parseInt(process.env.MAXIMUM_API_TIMEOUT || '30000'),
             }
         )
 
