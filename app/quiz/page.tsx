@@ -154,6 +154,7 @@ export default function QuizPage() {
     >(null);
     const [isLoadingResults, setIsLoadingResults] = useState(false);
     const [resultsError, setResultsError] = useState<string | null>(null);
+    const [roundNumber, setRoundNumber] = useState(1);
 
     const currentQuestion = questions[currentQuestionIndex];
 
@@ -388,6 +389,95 @@ export default function QuizPage() {
         fetchResults();
     };
 
+    const handleNextRound = async () => {
+        try {
+            console.log("[v0] Starting next round...");
+            setIsLoadingQuestions(true);
+            setResultsError(null);
+
+            const token = localStorage.getItem("jaifoo_jwt_token");
+
+            if (!token) {
+                console.log("[v0] No token found for next round");
+                setShowTokenDialog(true);
+                setIsLoadingQuestions(false);
+                return;
+            }
+
+            // Get the final results with all Q&A
+            const finalResults = {
+                ...userResults,
+                question_and_answer: {
+                    ...userResults.question_and_answer,
+                    answers: [
+                        ...userResults.question_and_answer.answers,
+                        ...(selectedChoice !== null && currentQuestion
+                            ? [
+                                {
+                                    question_id: currentQuestion.question_id,
+                                    question_number: currentQuestion.question_number,
+                                    label: currentQuestion.choices[selectedChoice].label,
+                                    cash: currentQuestion.choices[selectedChoice].cash,
+                                    happiness: currentQuestion.choices[selectedChoice].happiness,
+                                    stress: currentQuestion.choices[selectedChoice].stress,
+                                    tag: currentQuestion.choices[selectedChoice].tag,
+                                },
+                            ]
+                            : []),
+                    ],
+                },
+            };
+
+            console.log("[v0] Fetching new questions with previous Q&A:", finalResults.question_and_answer);
+
+            const result = await fetchQuestions(token, finalResults.question_and_answer);
+
+            if (!result.success || !result.data) {
+                throw new Error(result.error || "Failed to fetch new questions");
+            }
+
+            console.log("[v0] New questions fetched successfully:", result.data.length);
+
+            // Append new questions to existing questions
+            const allQuestions = [...questions, ...result.data];
+            setQuestions(allQuestions);
+
+            // Update userResults with new questions
+            setUserResults((prev) => ({
+                question_and_answer: {
+                    questions: [
+                        ...prev.question_and_answer.questions,
+                        ...result.data!.map((q) => ({
+                            question_id: q.question_id,
+                            question_number: q.question_number,
+                            category: q.category,
+                            question: q.question,
+                            choices: q.choices,
+                            timeLimitSec: q.timeLimitSec,
+                        })),
+                    ],
+                    answers: prev.question_and_answer.answers,
+                },
+            }));
+
+            // Reset game state to continue from where we left off
+            setIsComplete(false);
+            setCurrentQuestionIndex(questions.length); // Start from first new question
+            setSelectedChoice(null);
+            setTimeLeft(result.data[0].timeLimitSec);
+            setApiResults(null);
+            setRoundNumber((prev) => prev + 1); // Increment round number
+
+            console.log("[v0] Next round started successfully");
+        } catch (error) {
+            console.error("[v0] Failed to start next round:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to load next round";
+            setResultsError(errorMessage);
+        } finally {
+            setIsLoadingQuestions(false);
+        }
+    };
+
     useEffect(() => {
         if (
             timeLeft > 0 &&
@@ -550,9 +640,20 @@ export default function QuizPage() {
                 <div className="text-center">
                     {isLoadingQuestions ? (
                         <>
-                            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                            <p className="mt-4 text-gray-600">
+                            <div className="mb-6">
+                                <div className="text-4xl font-bold text-yellow-400 mb-2">
+                                    Round {roundNumber}
+                                </div>
+                                <div className="text-lg text-gray-600">
+                                    Get Ready!
+                                </div>
+                            </div>
+                            <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p className="mt-6 text-gray-600 font-medium">
                                 Loading questions...
+                            </p>
+                            <p className="mt-2 text-sm text-gray-500">
+                                Preparing your personalized quiz
                             </p>
                         </>
                     ) : (
@@ -943,9 +1044,10 @@ export default function QuizPage() {
                         </Button>
                         <Button
                             className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full"
-                            asChild
+                            onClick={handleNextRound}
+                            disabled={isLoadingQuestions}
                         >
-                            <Link href="/quiz">Next round</Link>
+                            {isLoadingQuestions ? "Loading..." : "Next round"}
                         </Button>
                     </div>
                 </div>

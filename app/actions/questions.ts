@@ -75,7 +75,34 @@ function validateQuestionsData(data: unknown): QuizQuestion[] {
 /**
  * Fetches quiz questions from the API using Axios
  */
-export async function fetchQuestions(token: string): Promise<FetchQuestionsResult> {
+export async function fetchQuestions(
+    token: string,
+    questionAndAnswer?: {
+        questions: Array<{
+            question_id: number;
+            question_number: number;
+            category: string;
+            question: string;
+            choices: Array<{
+                label: string;
+                cash: number;
+                happiness: number;
+                stress: number;
+                tag: string;
+            }>;
+            timeLimitSec: number;
+        }>;
+        answers: Array<{
+            question_id: number;
+            question_number: number;
+            label: string;
+            cash: number;
+            happiness: number;
+            stress: number;
+            tag: string;
+        }>;
+    }
+): Promise<FetchQuestionsResult> {
     if (!token?.trim()) {
         console.error('[fetchQuestions] No token provided')
         return {
@@ -90,7 +117,7 @@ export async function fetchQuestions(token: string): Promise<FetchQuestionsResul
         console.log('[fetchQuestions] Token preview:', token.trim().substring(0, 10) + '...')
 
         const requestBody = {
-            question_and_answer: {
+            question_and_answer: questionAndAnswer || {
                 questions: [],
                 answers: [],
             },
