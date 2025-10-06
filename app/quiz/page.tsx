@@ -413,30 +413,53 @@ export default function QuizPage() {
                         ...userResults.question_and_answer.answers,
                         ...(selectedChoice !== null && currentQuestion
                             ? [
-                                {
-                                    question_id: currentQuestion.question_id,
-                                    question_number: currentQuestion.question_number,
-                                    label: currentQuestion.choices[selectedChoice].label,
-                                    cash: currentQuestion.choices[selectedChoice].cash,
-                                    happiness: currentQuestion.choices[selectedChoice].happiness,
-                                    stress: currentQuestion.choices[selectedChoice].stress,
-                                    tag: currentQuestion.choices[selectedChoice].tag,
-                                },
-                            ]
+                                  {
+                                      question_id: currentQuestion.question_id,
+                                      question_number:
+                                          currentQuestion.question_number,
+                                      label: currentQuestion.choices[
+                                          selectedChoice
+                                      ].label,
+                                      cash: currentQuestion.choices[
+                                          selectedChoice
+                                      ].cash,
+                                      happiness:
+                                          currentQuestion.choices[
+                                              selectedChoice
+                                          ].happiness,
+                                      stress: currentQuestion.choices[
+                                          selectedChoice
+                                      ].stress,
+                                      tag: currentQuestion.choices[
+                                          selectedChoice
+                                      ].tag,
+                                  },
+                              ]
                             : []),
                     ],
                 },
             };
 
-            console.log("[v0] Fetching new questions with previous Q&A:", finalResults.question_and_answer);
+            console.log(
+                "[v0] Fetching new questions with previous Q&A:",
+                finalResults.question_and_answer
+            );
 
-            const result = await fetchQuestions(token, finalResults.question_and_answer);
+            const result = await fetchQuestions(
+                token,
+                finalResults.question_and_answer
+            );
 
             if (!result.success || !result.data) {
-                throw new Error(result.error || "Failed to fetch new questions");
+                throw new Error(
+                    result.error || "Failed to fetch new questions"
+                );
             }
 
-            console.log("[v0] New questions fetched successfully:", result.data.length);
+            console.log(
+                "[v0] New questions fetched successfully:",
+                result.data.length
+            );
 
             // Append new questions to existing questions
             const allQuestions = [...questions, ...result.data];
@@ -471,7 +494,10 @@ export default function QuizPage() {
             console.log("[v0] Next round started successfully");
         } catch (error) {
             console.error("[v0] Failed to start next round:", error);
-            const errorMessage = error instanceof Error ? error.message : "Failed to load next round";
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to load next round";
             setResultsError(errorMessage);
         } finally {
             setIsLoadingQuestions(false);
@@ -642,7 +668,7 @@ export default function QuizPage() {
                         <>
                             <div className="mb-6">
                                 <div className="text-4xl font-bold text-yellow-400 mb-2">
-                                    Round {roundNumber}
+                                    Round {roundNumber + 1}
                                 </div>
                                 <div className="text-lg text-gray-600">
                                     Get Ready!
@@ -1043,11 +1069,11 @@ export default function QuizPage() {
                             </Link>
                         </Button>
                         <Button
-                            className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full"
+                            className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={handleNextRound}
-                            disabled={isLoadingQuestions}
+                            disabled={isLoadingQuestions || roundNumber >= 2}
                         >
-                            {isLoadingQuestions ? "Loading..." : "Next round"}
+                            {isLoadingQuestions ? "Loading..." : roundNumber >= 2 ? "Round Limit Reached" : "Next round"}
                         </Button>
                     </div>
                 </div>
