@@ -55,13 +55,13 @@ interface UserQuizResults {
             question_number: number;
             category: string;
             question: string;
-            choices: {
+            choices: Array<{
                 label: string;
                 cash: number;
                 happiness: number;
                 stress: number;
                 tag: string;
-            };
+            }>;
             timeLimitSec: number;
         }>;
         answers: Array<{
@@ -196,7 +196,7 @@ export default function QuizPage() {
                             question_number: q.question_number,
                             category: q.category,
                             question: q.question,
-                            choices: q.choices[0], // Store the first choice as representative structure
+                            choices: q.choices, // Store all choices array
                             timeLimitSec: q.timeLimitSec,
                         })),
                     },
