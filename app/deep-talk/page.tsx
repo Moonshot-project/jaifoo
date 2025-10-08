@@ -15,44 +15,12 @@ export default function DeepTalkPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputText, setInputText] = useState("");
+    const [inputGuide, setInputGuide] = useState("Type a message...");
     const [isLoading, setIsLoading] = useState(true);
     const [conversationHistory, setConversationHistory] = useState<
         ReflectionMessage[]
     >([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    // Get user's result data from URL params
-    const stress = searchParams.get("stress") || "70";
-    const happiness = searchParams.get("happiness") || "70";
-    const cash = searchParams.get("cash") || "70";
-
-    // const result: GameResultUI | null = useMemo(() => {
-    //     // Only create result if conversation history exists
-    //     if (conversationHistory.length === 0) {
-    //         return null;
-    //     }
-
-    //     return {
-    //         id: "knight",
-    //         title: conversationHistory[0]?.header || "Deep Talk Session",
-    //         description:
-    //             conversationHistory[conversationHistory.length - 1]?.messages ||
-    //             "Conversation in progress",
-    //         imageUrl: "/images/knight-character.png",
-    //         themeColors: ["#6366f1", "#8b5cf6"],
-    //         stats: {
-    //             stressScore: Math.min(
-    //                 100,
-    //                 Math.max(0, Number.parseInt(stress))
-    //             ),
-    //             happinessScore: Math.min(
-    //                 100,
-    //                 Math.max(0, Number.parseInt(happiness))
-    //             ),
-    //             cash: Math.min(100, Math.max(0, Number.parseInt(cash))),
-    //         },
-    //     };
-    // }, [conversationHistory, stress, happiness, cash]);
 
     // Scroll to bottom when new messages are added
     const scrollToBottom = () => {
@@ -132,6 +100,8 @@ export default function DeepTalkPage() {
                 userInput: "",
             };
 
+            setInputGuide(response.data.inputGuide || "Type a message...");
+
             // Update conversation history
             updatedHistory.push(newReflectionMessage);
             setConversationHistory(updatedHistory);
@@ -152,17 +122,6 @@ export default function DeepTalkPage() {
             handleSendMessage();
         }
     };
-
-    // const handleBack = () => {
-    //     if (!result) return;
-
-    //     const params = new URLSearchParams({
-    //         stress: result.stats.stressScore.toString(),
-    //         happiness: result.stats.happinessScore.toString(),
-    //         cash: result.stats.cash.toString(),
-    //     });
-    //     router.push(`/results?${params.toString()}`);
-    // };
 
     return (
         <div className="min-h-screen bg-[#f5f5f5]">
@@ -219,7 +178,11 @@ export default function DeepTalkPage() {
                                         setInputText(e.target.value)
                                     }
                                     onKeyPress={handleKeyPress}
-                                    placeholder={isLoading ? "Waiting for response..." : "Type a message..."}
+                                    placeholder={
+                                        isLoading
+                                            ? "Waiting for response..."
+                                            : inputGuide
+                                    }
                                     disabled={isLoading}
                                     className="w-full px-6 py-4 bg-[#d9d9d9] text-gray-900 placeholder:text-gray-500 rounded-full focus:outline-none focus:ring-2 focus:ring-[#ffc92b] disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
