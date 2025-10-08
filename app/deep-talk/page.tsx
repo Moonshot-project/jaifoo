@@ -193,7 +193,7 @@ export default function DeepTalkPage() {
                                             </div>
                                         </div>
 
-                                        {item.userInput ?? (
+                                        {item.userInput && (
                                             <div className="flex justify-center">
                                                 <div className="w-full max-w-xl px-6 py-4 rounded-3xl bg-[#ffc92b] text-gray-900">
                                                     <p className="text-base leading-relaxed whitespace-pre-wrap">
