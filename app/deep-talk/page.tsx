@@ -12,66 +12,16 @@ import {
 } from "@/app/actions/fetchDeepTalkAI";
 
 export default function DeepTalkPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [conversationHistory, setConversationHistory] = useState<ReflectionMessage[]>([])
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [inputText, setInputText] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [conversationHistory, setConversationHistory] = useState<
+        ReflectionMessage[]
+    >([]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get user's result data from URL params
-  const stress = searchParams.get("stress") || "70"
-  const happiness = searchParams.get("happiness") || "70"
-  const cash = searchParams.get("cash") || "70"
-
-  const result: GameResultUI | null = useMemo(() => {
-    // Only create result if conversation history exists
-    if (conversationHistory.length === 0) {
-      return null
-    }
-
-    return {
-      id: "knight",
-      title: conversationHistory[0]?.header || "Deep Talk Session",
-      description: conversationHistory[conversationHistory.length - 1]?.messages || "Conversation in progress",
-      imageUrl: "/images/knight-character.png",
-      themeColors: ["#6366f1", "#8b5cf6"],
-      stats: {
-        stressScore: Math.min(100, Math.max(0, Number.parseInt(stress))),
-        happinessScore: Math.min(100, Math.max(0, Number.parseInt(happiness))),
-        cash: Math.min(100, Math.max(0, Number.parseInt(cash))),
-      },
-    }
-  }, [conversationHistory, stress, happiness, cash])
-
-  // Scroll to bottom when new messages are added
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Initialize with API greeting
-  useEffect(() => {
-    const loadInitialGreeting = async () => {
-      try {
-        setIsLoading(true)
-        const token = localStorage.getItem("jaifoo_jwt_token")
-
-        if (!token) {
-          throw new Error("No authentication token found")
-        }
-
-        // Initial request with empty string userInput to get the first greeting
-        const initialReflectionMessage: ReflectionMessage = {
-          header: "Welcome to Deep Talk",
-          messages: "Starting conversation",
-          inputGuide: "Share what's on your mind",
-          options: {
-            id: "start_conversation",
-            label: "Start",
-            icon: "💬",
-          },
-          userInput: "",
+    // Get user's result data from URL params
     const stress = searchParams.get("stress") || "70";
     const happiness = searchParams.get("happiness") || "70";
     const cash = searchParams.get("cash") || "70";
