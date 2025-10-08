@@ -154,7 +154,7 @@ export default function QuizPage() {
     >(null);
     const [isLoadingResults, setIsLoadingResults] = useState(false);
     const [resultsError, setResultsError] = useState<string | null>(null);
-    const [roundNumber, setRoundNumber] = useState(1);
+    const [roundNumber, setRoundNumber] = useState(0);
 
     const currentQuestion = questions[currentQuestionIndex];
 
@@ -179,13 +179,13 @@ export default function QuizPage() {
 
                 if (!result.success || !result.data) {
                     throw new Error(
-                        result.error || "Failed to fetch questions"
+                        result.error || "Failed to fetch questions",
                     );
                 }
 
                 console.log(
                     "[v0] Questions fetched successfully:",
-                    result.data.length
+                    result.data.length,
                 );
 
                 setQuestions(result.data!);
@@ -299,7 +299,7 @@ export default function QuizPage() {
             currentQuestionIndex,
             questions,
             userResults,
-        ]
+        ],
     );
 
     const fetchResults = async () => {
@@ -353,11 +353,11 @@ export default function QuizPage() {
 
             console.log(
                 "[v0] Fetching results with final data:",
-                finalResults.question_and_answer
+                finalResults.question_and_answer,
             );
             const result = await fetchResultsFromServer(
                 token,
-                finalResults.question_and_answer
+                finalResults.question_and_answer,
             );
 
             console.log("[v0] Results fetch response:", result);
@@ -369,7 +369,7 @@ export default function QuizPage() {
             } else {
                 console.error("[v0] Results fetch failed:", result.error);
                 setResultsError(
-                    result.error || "Failed to fetch results from server"
+                    result.error || "Failed to fetch results from server",
                 );
             }
         } catch (error) {
@@ -442,23 +442,23 @@ export default function QuizPage() {
 
             console.log(
                 "[v0] Fetching new questions with previous Q&A:",
-                finalResults.question_and_answer
+                finalResults.question_and_answer,
             );
 
             const result = await fetchQuestions(
                 token,
-                finalResults.question_and_answer
+                finalResults.question_and_answer,
             );
 
             if (!result.success || !result.data) {
                 throw new Error(
-                    result.error || "Failed to fetch new questions"
+                    result.error || "Failed to fetch new questions",
                 );
             }
 
             console.log(
                 "[v0] New questions fetched successfully:",
-                result.data.length
+                result.data.length,
             );
 
             // Append new questions to existing questions
@@ -489,7 +489,7 @@ export default function QuizPage() {
             setSelectedChoice(null);
             setTimeLeft(result.data[0].timeLimitSec);
             setApiResults(null);
-            setRoundNumber((prev) => prev + 1); // Increment round number
+            setRoundNumber((prev) => prev + 1);
 
             console.log("[v0] Next round started successfully");
         } catch (error) {
@@ -513,7 +513,7 @@ export default function QuizPage() {
         ) {
             const timer = setTimeout(
                 () => setTimeLeft((prev) => prev - 1),
-                1000
+                1000,
             );
             return () => clearTimeout(timer);
         } else if (timeLeft === 0 && selectedChoice === null) {
@@ -537,21 +537,21 @@ export default function QuizPage() {
     const shareResult = (platform: string) => {
         const stressPercentage = Math.min(
             100,
-            Math.max(0, (totals.stress / 100) * 100)
+            Math.max(0, (totals.stress / 100) * 100),
         );
         const happinessPercentage = Math.min(
             100,
-            Math.max(0, (totals.happiness / 100) * 100)
+            Math.max(0, (totals.happiness / 100) * 100),
         );
         const cashPercentage = Math.min(
             100,
-            Math.max(0, ((totals.cash - 15000) / 5000) * 100 + 50)
+            Math.max(0, ((totals.cash - 15000) / 5000) * 100 + 50),
         );
 
         const shareText = `I just completed the Jaifoo personality quiz! My results: Stress ${Math.round(
-            stressPercentage
+            stressPercentage,
         )}%, Happiness ${Math.round(happinessPercentage)}%, Cash ${Math.round(
-            cashPercentage
+            cashPercentage,
         )}%`;
         const shareUrl = window.location.href;
 
@@ -559,31 +559,31 @@ export default function QuizPage() {
             case "line":
                 window.open(
                     `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(
-                        shareUrl
+                        shareUrl,
                     )}&text=${encodeURIComponent(shareText)}`,
-                    "_blank"
+                    "_blank",
                 );
                 break;
             case "instagram":
                 navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
                 alert(
-                    "Result copied to clipboard! You can paste it in your Instagram story or post."
+                    "Result copied to clipboard! You can paste it in your Instagram story or post.",
                 );
                 break;
             case "x":
                 window.open(
                     `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                        shareText
+                        shareText,
                     )}&url=${encodeURIComponent(shareUrl)}`,
-                    "_blank"
+                    "_blank",
                 );
                 break;
             case "facebook":
                 window.open(
                     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                        shareUrl
+                        shareUrl,
                     )}&quote=${encodeURIComponent(shareText)}`,
-                    "_blank"
+                    "_blank",
                 );
                 break;
         }
@@ -763,12 +763,12 @@ export default function QuizPage() {
                       (((apiResults.updatedParam.cash || 15000) - 15000) /
                           5000) *
                           100 +
-                          50
-                  )
+                          50,
+                  ),
               )
             : Math.min(
                   100,
-                  Math.max(0, ((totals.cash - 15000) / 5000) * 100 + 50)
+                  Math.max(0, ((totals.cash - 15000) / 5000) * 100 + 50),
               );
 
         const result: GameResultUI = {
@@ -1073,7 +1073,11 @@ export default function QuizPage() {
                             onClick={handleNextRound}
                             disabled={isLoadingQuestions || roundNumber >= 2}
                         >
-                            {isLoadingQuestions ? "Loading..." : roundNumber >= 2 ? "Round Limit Reached" : "Next round"}
+                            {isLoadingQuestions
+                                ? "Loading..."
+                                : roundNumber >= 2
+                                  ? "Round Limit Reached"
+                                  : "Next round"}
                         </Button>
                     </div>
                 </div>
@@ -1141,8 +1145,8 @@ export default function QuizPage() {
                                 selectedChoice === index
                                     ? "bg-yellow-400 border-yellow-400 text-gray-900"
                                     : selectedChoice !== null
-                                    ? "bg-gray-100 border-gray-200 text-gray-500"
-                                    : "bg-white border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 text-gray-900"
+                                      ? "bg-gray-100 border-gray-200 text-gray-500"
+                                      : "bg-white border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 text-gray-900"
                             }`}
                             variant="ghost"
                         >
