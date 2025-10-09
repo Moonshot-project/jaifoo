@@ -10,6 +10,7 @@ import {
     fetchDeepTalkAI,
     type ReflectionMessage,
 } from "@/app/actions/fetchDeepTalkAI";
+import Link from "next/link";
 
 export default function DeepTalkPage() {
     const router = useRouter();
@@ -127,7 +128,13 @@ export default function DeepTalkPage() {
         <div className="min-h-screen bg-[#f5f5f5]">
             <div className="flex items-center justify-center min-h-screen p-4">
                 <div className="w-full max-w-2xl h-[90vh] bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col">
-                    <div className="bg-white px-6 py-8 flex flex-col items-center gap-4 flex-shrink-0 ">
+                    <div className="bg-white px-6 py-8 flex flex-col items-center gap-4 flex-shrink-0 relative">
+                        <Button
+                            className="absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-full text-sm"
+                            asChild
+                        >
+                            <Link href="/signup">End Deep Talk</Link>
+                        </Button>
                         <img
                             src="./images/jaifooTaking.png"
                             alt="Jaifoo"
