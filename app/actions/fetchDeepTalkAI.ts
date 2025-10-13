@@ -47,7 +47,7 @@ export interface DeepTalkResponse {
 
 export async function fetchDeepTalkAI(
     payload: DeepTalkRequest,
-    token: string
+    token: string,
 ): Promise<DeepTalkResponse> {
     const API_URL = `${process.env.BACKEND_API_SERVER}/api/model/deep-talk/`;
     const TIMEOUT = Number(process.env.MAXIMUM_API_TIMEOUT) || 300000;
@@ -60,11 +60,15 @@ export async function fetchDeepTalkAI(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
+        // Generate 16-character random requestUid
+        const requestUid = Math.random().toString(36).substring(2, 18);
+
         const res = await fetch(API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token.trim()}`,
+                requestUid: requestUid,
             },
             body: JSON.stringify(payload),
             signal: controller.signal,
@@ -79,17 +83,23 @@ export async function fetchDeepTalkAI(
 
         if (!res.ok) {
             throw new Error(
-                data?.message || data?.error || `Request failed (${res.status})`
+                `[${requestUid}] ${
+                    data?.message ||
+                    data?.error ||
+                    `Request failed (${res.status})`
+                }`,
             );
         }
 
         return data as DeepTalkResponse;
     } catch (err: any) {
         if (err?.name === "AbortError") {
-            throw new Error("Request timed out. Please try again.");
+            throw new Error(
+                `[${requestUid}] Request timed out. Please try again.`,
+            );
         }
         throw new Error(
-            err instanceof Error ? err.message : "DeepTalk fetch failed"
+            `[${requestUid}] ${err instanceof Error ? err.message : "DeepTalk fetch failed"}`,
         );
     }
 }
