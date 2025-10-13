@@ -68,7 +68,7 @@ function sanitizeTokenForLogging(token: string): string {
 
 export async function fetchResults(
     token: string,
-    questionAndAnswer: UserQuizResults["question_and_answer"]
+    questionAndAnswer: UserQuizResults["question_and_answer"],
 ): Promise<{ success: boolean; data?: ApiResultResponse; error?: string }> {
     const startTime = Date.now();
 
@@ -88,8 +88,11 @@ export async function fetchResults(
         console.log("[v0] Server: Token info:", sanitizeTokenForLogging(token));
         console.log(
             "DEBUG: Fetching use persona with request body:",
-            requestBody
+            requestBody,
         );
+
+        // Generate 16-character random requestUid
+        const requestUid = Math.random().toString(36).substring(2, 18);
 
         const response = await axios.post<ApiResultResponse>(
             `${process.env.BACKEND_API_SERVER}/api/model/interpret-result/`,
@@ -99,14 +102,15 @@ export async function fetchResults(
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token.trim()}`,
                     Accept: "application/json",
+                    requestUid: requestUid,
                 },
                 timeout: parseInt(process.env.MAXIMUM_API_TIMEOUT || "30000"),
-            }
+            },
         );
 
         const requestDuration = Date.now() - startTime;
         console.log(
-            `[v0] Server: Response received after ${requestDuration}ms, status: ${response.status}`
+            `[v0] Server: Response received after ${requestDuration}ms, status: ${response.status}`,
         );
         console.log("response", response);
 
@@ -140,7 +144,7 @@ export async function fetchResults(
             });
             return {
                 success: false,
-                error: errorMsg,
+                error: `[${requestUid}] ${errorMsg}`,
             };
         }
 
@@ -155,7 +159,7 @@ export async function fetchResults(
         }
 
         console.log(
-            `[v0] Server: Successfully fetched results in ${requestDuration}ms`
+            `[v0] Server: Successfully fetched results in ${requestDuration}ms`,
         );
         console.log("[v0] Server: Request completed:", {
             requestId: data.requestId,
@@ -173,11 +177,11 @@ export async function fetchResults(
 
             if (axiosError.code === "ECONNABORTED") {
                 console.error(
-                    `[v0] Server: Request timeout after ${requestDuration}ms`
+                    `[v0] Server: Request timeout after ${requestDuration}ms`,
                 );
                 return {
                     success: false,
-                    error: "Request timed out - please try again",
+                    error: `[${requestUid}] Request timed out - please try again`,
                 };
             }
 
@@ -199,7 +203,7 @@ export async function fetchResults(
 
                 return {
                     success: false,
-                    error: errorMsg,
+                    error: `[${requestUid}] ${errorMsg}`,
                 };
             }
 
@@ -211,7 +215,7 @@ export async function fetchResults(
 
             return {
                 success: false,
-                error: `Network error: ${axiosError.message}`,
+                error: `[${requestUid}] Network error: ${axiosError.message}`,
             };
         }
 
@@ -225,14 +229,14 @@ export async function fetchResults(
 
             return {
                 success: false,
-                error: `Request failed: ${error.message}`,
+                error: `[${requestUid}] Request failed: ${error.message}`,
             };
         }
 
         console.error("[v0] Server: Failed to fetch results from API:", error);
         return {
             success: false,
-            error: "An unexpected error occurred",
+            error: `[${requestUid}] An unexpected error occurred`,
         };
     }
 }
