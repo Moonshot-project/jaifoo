@@ -20,7 +20,7 @@ interface AuthResponse {
 }
 
 export async function authenticateUser(
-    payload: AuthPayload
+    payload: AuthPayload,
 ): Promise<AuthResponse> {
     const API_URL = `${process.env.BACKEND_API_SERVER}/api/user/auth/api-key/`;
     const CLIENT_NAME = process.env.DEMO_USER_NAME;
@@ -37,14 +37,20 @@ export async function authenticateUser(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 300_000);
 
+        // Generate 16-character random requestUid
+        const requestUid = Math.random().toString(36).substring(2, 18);
+
         console.log("Authenticating user with payload:", payload);
+
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${btoa(`${CLIENT_NAME}:${API_SECRET}`)}`,
+            requestUid: requestUid,
+        };
 
         const res = await fetch(API_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${btoa(`${CLIENT_NAME}:${API_SECRET}`)}`,
-            },
+            headers,
             body: JSON.stringify(payload),
             signal: controller.signal,
         });
@@ -64,7 +70,7 @@ export async function authenticateUser(
                 `Authentication failed (${res.status})`;
             return {
                 success: false,
-                error: msg,
+                error: `[${requestUid}] ${msg}`,
             };
         }
 
@@ -74,7 +80,7 @@ export async function authenticateUser(
             const msg = data?.message || "No access token received";
             return {
                 success: false,
-                error: msg,
+                error: `[${requestUid}] ${msg}`,
             };
         }
 
@@ -104,12 +110,12 @@ export async function authenticateUser(
         if (err?.name === "AbortError") {
             return {
                 success: false,
-                error: "Request timed out. Please try again.",
+                error: `[${requestUid}] Request timed out. Please try again.`,
             };
         }
         return {
             success: false,
-            error: err instanceof Error ? err.message : "Authentication failed",
+            error: `[${requestUid}] ${err instanceof Error ? err.message : "Authentication failed"}`,
         };
     }
 }
