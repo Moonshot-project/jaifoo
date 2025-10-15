@@ -785,7 +785,7 @@ export default function QuizPage() {
         };
 
         return (
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-white">
                 <header className="flex items-center justify-between p-6 max-w-6xl mx-auto">
                     <h1 className="text-2xl font-bold text-gray-900">Jaifoo</h1>
                     <DropdownMenu>
@@ -822,7 +822,7 @@ export default function QuizPage() {
                     </DropdownMenu>
                 </header>
 
-                <div className="flex flex-col items-center justify-center px-6 py-8">
+                <main className="flex flex-col items-center justify-center px-6 py-8 max-w-md mx-auto">
                     {/* Result Card */}
                     <div
                         className="rounded-3xl shadow-lg overflow-hidden"
@@ -1080,7 +1080,7 @@ export default function QuizPage() {
                                 : "Next round"}
                         </Button>
                     </div>
-                </div>
+                </main>
             </div>
         );
     }
@@ -1141,7 +1141,7 @@ export default function QuizPage() {
                             key={index}
                             onClick={() => handleSelect(index)}
                             disabled={selectedChoice !== null}
-                            className={`w-full p-6 text-left rounded-xl border-2 transition-all ${
+                            className={`w-full min-h-[80px] p-6 text-left rounded-xl border-2 transition-all ${
                                 selectedChoice === index
                                     ? "bg-yellow-400 border-yellow-400 text-gray-900"
                                     : selectedChoice !== null
@@ -1150,8 +1150,8 @@ export default function QuizPage() {
                             }`}
                             variant="ghost"
                         >
-                            <div className="flex items-start justify-between gap-4">
-                                <span className="text-lg font-medium flex-1 break-words">
+                            <div className="flex items-start justify-between gap-4 w-full">
+                                <span className="text-lg font-medium flex-1 break-words whitespace-normal">
                                     {choice.label}
                                 </span>
                                 <span className="text-sm text-gray-500 flex-shrink-0">
