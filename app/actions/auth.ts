@@ -4,6 +4,7 @@ interface AuthPayload {
     user_name: string;
     stress_score: number;
     happiness_score: number;
+    recaptcha_token?: string;
 }
 
 interface AuthResponse {
