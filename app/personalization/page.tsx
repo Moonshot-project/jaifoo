@@ -7,21 +7,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { MoreVertical } from "lucide-react";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { authenticateUser } from "@/app/actions/auth";
-import RecaptchaWrapper from "@/components/recaptcha-wrapper";
-import type ReCAPTCHA from "react-google-recaptcha";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 export default function PersonalizationPage() {
     const [name, setName] = useState("");
@@ -29,27 +21,39 @@ export default function PersonalizationPage() {
     const [tightnessValue, setTightnessValue] = useState([50]);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [loginError, setLoginError] = useState("");
-    const [showRecaptchaModal, setShowRecaptchaModal] = useState(false);
-    const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
-    const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
-    const handleReadyClick = () => {
+    const handleReadyClick = async () => {
         if (!name.trim()) {
             setLoginError("Please enter your name first");
             return;
         }
 
+        if (!executeRecaptcha) {
+            setLoginError("reCAPTCHA not yet loaded. Please try again.");
+            return;
+        }
+
         setLoginError("");
-        setShowRecaptchaModal(true);
-    };
+        setIsLoggingIn(true);
 
+        try {
+            // Execute reCAPTCHA v3
+            const token = await executeRecaptcha("login");
 
-    const handleRecaptchaChange = (token: string | null) => {
-        setRecaptchaToken(token);
-        if (token) {
-            setLoginError("");
-            // Automatically proceed with login after reCAPTCHA is verified
-            proceedWithLogin(token);
+            if (!token) {
+                throw new Error("Failed to get reCAPTCHA token");
+            }
+
+            await proceedWithLogin(token);
+        } catch (err: any) {
+            setLoginError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to verify reCAPTCHA",
+            );
+            console.error("reCAPTCHA error:", err);
+            setIsLoggingIn(false);
         }
     };
 
@@ -85,35 +89,19 @@ export default function PersonalizationPage() {
                     user_id: data!.user_id,
                     tightnessValue: data!.stress_score,
                     feelGoodValue: data!.happiness_score,
-                })
+                }),
             );
 
             // Navigate
             window.location.href = "/quiz";
         } catch (err: any) {
             setLoginError(
-                err instanceof Error ? err.message : "Authentication failed"
+                err instanceof Error ? err.message : "Authentication failed",
             );
             console.error("Authentication error:", err);
-            // Reset reCAPTCHA on error
-            if (recaptchaRef.current) {
-                recaptchaRef.current.reset();
-                setRecaptchaToken(null);
-            }
-            setShowRecaptchaModal(false);
         } finally {
             setIsLoggingIn(false);
         }
-    };
-
-    const handleRecaptchaExpired = () => {
-        setRecaptchaToken(null);
-        setLoginError("reCAPTCHA expired. Please verify again.");
-    };
-
-    const handleRecaptchaError = () => {
-        setRecaptchaToken(null);
-        setLoginError("reCAPTCHA error. Please try again.");
     };
 
     return (
@@ -251,33 +239,6 @@ export default function PersonalizationPage() {
                     {isLoggingIn ? "Getting ready..." : "Ready, let's go"}
                 </Button>
             </main>
-
-            {/* reCAPTCHA Modal */}
-            <Dialog open={showRecaptchaModal} onOpenChange={setShowRecaptchaModal}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-center text-xl">Verify you're human</DialogTitle>
-                        <DialogDescription className="text-center">
-                            Please complete the verification below to continue
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col items-center justify-center py-6">
-                        <div className="rounded-xl overflow-hidden">
-                            <RecaptchaWrapper
-                                ref={recaptchaRef}
-                                onChange={handleRecaptchaChange}
-                                onExpired={handleRecaptchaExpired}
-                                onErrored={handleRecaptchaError}
-                            />
-                        </div>
-                        {isLoggingIn && (
-                            <div className="mt-6 text-center">
-                                <p className="text-gray-600">Verifying and logging in...</p>
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
