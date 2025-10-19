@@ -14,8 +14,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { authenticateUser } from "@/app/actions/auth";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import RecaptchaProvider from "@/components/recaptcha-wrapper";
 
-export default function PersonalizationPage() {
+function PersonalizationPageContent() {
     const [name, setName] = useState("");
     const [feelGoodValue, setFeelGoodValue] = useState([50]);
     const [tightnessValue, setTightnessValue] = useState([50]);
@@ -240,5 +241,13 @@ export default function PersonalizationPage() {
                 </Button>
             </main>
         </div>
+    );
+}
+
+export default function PersonalizationPage() {
+    return (
+        <RecaptchaProvider>
+            <PersonalizationPageContent />
+        </RecaptchaProvider>
     );
 }
