@@ -56,12 +56,12 @@ export async function fetchDeepTalkAI(
         throw new Error("Authentication error: Missing JWT token");
     }
 
+    // Generate 16-character random requestUid
+    const requestUid = Math.random().toString(36).substring(2, 18);
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
-
-        // Generate 16-character random requestUid
-        const requestUid = Math.random().toString(36).substring(2, 18);
 
         const res = await fetch(API_URL, {
             method: "POST",
