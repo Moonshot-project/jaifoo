@@ -140,7 +140,6 @@ export default function DeepTalkPage() {
     };
 
     return (
-        // <div className="h-screen bg-white flex flex-col overflow-hidden">
         <div className="h-screen bg-white text-gray-900">
             <Header />
             <main className="flex-1 flex flex-col w-full overflow-hidden ">
