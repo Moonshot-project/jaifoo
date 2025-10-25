@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchQuestions } from "@/app/actions/questions";
 import { fetchResults as fetchResultsFromServer } from "@/app/actions/results";
 
@@ -157,37 +157,35 @@ export default function QuizPage() {
     const [roundNumber, setRoundNumber] = useState(0);
 
     const currentQuestion = questions[currentQuestionIndex];
+    const hasFetchedRef = useRef(false);
 
     useEffect(() => {
         const loadQuestions = async () => {
+            if (hasFetchedRef.current) return;
+            hasFetchedRef.current = true;
+
             try {
                 setIsLoadingQuestions(true);
-
                 console.log("[v0] Checking for authentication token...");
                 const token = localStorage.getItem("jaifoo_jwt_token");
                 console.log("[v0] Token found:", token ? "Yes" : "No");
-
                 if (!token) {
                     console.log("[v0] No token found, showing dialog...");
                     setShowTokenDialog(true);
                     setIsLoadingQuestions(false);
                     return;
                 }
-
                 console.log("[v0] Fetching questions with server action...");
                 const result = await fetchQuestions(token);
-
                 if (!result.success || !result.data) {
                     throw new Error(
                         result.error || "Failed to fetch questions",
                     );
                 }
-
                 console.log(
                     "[v0] Questions fetched successfully:",
                     result.data.length,
                 );
-
                 setQuestions(result.data!);
                 setUserResults((prev) => ({
                     question_and_answer: {
@@ -197,7 +195,7 @@ export default function QuizPage() {
                             question_number: q.question_number,
                             category: q.category,
                             question: q.question,
-                            choices: q.choices, // Store all choices array
+                            choices: q.choices,
                             timeLimitSec: q.timeLimitSec,
                         })),
                     },
@@ -218,7 +216,6 @@ export default function QuizPage() {
                 setIsLoadingQuestions(false);
             }
         };
-
         loadQuestions();
     }, []);
 
