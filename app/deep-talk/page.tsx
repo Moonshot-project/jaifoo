@@ -2,11 +2,9 @@
 
 import type React from "react";
 import Header from "@/components/Header";
-import { MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef, useMemo, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { GameResultUI } from "@/lib/game-results";
 import {
     fetchDeepTalkAI,
     type ReflectionMessage,
@@ -142,9 +140,10 @@ export default function DeepTalkPage() {
     };
 
     return (
-        <div className="h-screen bg-white flex flex-col overflow-hidden">
+        // <div className="h-screen bg-white flex flex-col overflow-hidden">
+        <div className="h-screen bg-white text-gray-900">
             <Header />
-            <main className="flex-1 flex flex-col w-full overflow-hidden">
+            <main className="flex-1 flex flex-col w-full overflow-hidden ">
                 <div className="bg-white px-6 py-4 flex flex-col items-center gap-4 flex-shrink-0 relative z-10">
                     <Button
                         className="absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-2 py-2 rounded-full text-sm"
@@ -159,7 +158,7 @@ export default function DeepTalkPage() {
                     />
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
+                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 max-h-[calc(100vh-400px)]">
                     {isLoading && conversationHistory.length === 0 ? (
                         <div className="flex justify-center items-center h-full">
                             <div className="text-gray-500">Loading...</div>
