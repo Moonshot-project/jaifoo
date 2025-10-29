@@ -1,59 +1,13 @@
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Menu,
-    ChevronRight,
-    TrendingUp,
-    Shield,
-    Zap,
-    Mail,
-} from "lucide-react";
+import { ChevronRight, TrendingUp, Shield, Zap, Mail } from "lucide-react";
 import Link from "next/link";
+import Header from "@/components/Header";
 
 export default function JaifooLanding() {
     return (
         <div className="min-h-screen bg-white text-gray-900">
             {/* Header */}
-            <header className="flex items-center justify-between p-6 max-w-6xl mx-auto">
-                <h1 className="text-2xl font-bold text-gray-900">Jaifoo</h1>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            size="icon"
-                            className="bg-[#ffc92b] hover:bg-[#ffc92a] text-gray-900 rounded-lg w-10 h-10"
-                        >
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem>
-                            <Link href="#" className="w-full">
-                                Products
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Link href="#contact" className="w-full">
-                                Contact us
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Link href="#" className="w-full">
-                                Report problems
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Link href="/signup" className="w-full">
-                                Join wait list
-                            </Link>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </header>
+            <Header />
 
             {/* Main Content */}
             <main className="max-w-4xl mx-auto px-6">
@@ -91,16 +45,16 @@ export default function JaifooLanding() {
                         <Link href="/onboarding">
                             <Button
                                 className="
-                  bg-[#ffc92b] 
-                  text-gray-900 
-                  text-lg font-medium 
-                  px-14 py-6 
-                  rounded-full 
-                  transition-all 
-                  duration-300 
-                  hover:bg-[#ffdb4d] 
-                  hover:scale-105 
-                  hover:shadow-lg 
+                  bg-[#ffc92b]
+                  text-gray-900
+                  text-lg font-medium
+                  px-14 py-6
+                  rounded-full
+                  transition-all
+                  duration-300
+                  hover:bg-[#ffdb4d]
+                  hover:scale-105
+                  hover:shadow-lg
                   active:scale-95
                 "
                             >
