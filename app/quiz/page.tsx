@@ -10,7 +10,6 @@ import ActiveQuizPage from "@/features/quiz/ActiveQuizPage";
 import PersonalityGameWrapper from "@/features/quiz/PersonalityGameWrapper";
 import {
     QuizQuestion,
-    QuizAnswer,
     UserQuizResults,
     ApiResultResponse,
 } from "@/features/quiz/types";
@@ -19,7 +18,6 @@ export default function QuizPage() {
     // Core quiz states
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(5);
-    const [answers, setAnswers] = useState<QuizAnswer[]>([]);
     const [userResults, setUserResults] = useState<UserQuizResults>({
         question_and_answer: {
             questions: [],
@@ -38,7 +36,6 @@ export default function QuizPage() {
     // Question stages and data
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
-    // const [questionsReady, setQuestionsReady] = useState(false);
 
     // Missing auth key dialog state
     const [showTokenDialog, setShowTokenDialog] = useState(false);
@@ -51,15 +48,18 @@ export default function QuizPage() {
     const [resultsError, setResultsError] = useState<string | null>(null);
     const [roundNumber, setRoundNumber] = useState(0);
 
-    // New states for personality game flow
+    // Personality game flow state
     const [hasCompletedPersonalityGame, setHasCompletedPersonalityGame] =
         useState(false);
-    const [personalitySelections, setPersonalitySelections] = useState<
-        string[]
-    >([]);
 
     const currentQuestion = questions[currentQuestionIndex];
     const hasFetchedRef = useRef(false);
+
+    const getErrorMessage = (error: unknown): string => {
+        return error instanceof Error
+            ? error.message
+            : "Unknown error occurred";
+    };
 
     // Effect to fetch questions on mount
     useEffect(() => {
@@ -77,7 +77,6 @@ export default function QuizPage() {
                     return;
                 }
 
-                console.log("Fetching questions round:", roundNumber + 1);
                 const result = await fetchQuestions(token);
                 if (!result.success || !result.data) {
                     throw new Error(
@@ -99,20 +98,8 @@ export default function QuizPage() {
                         })),
                     },
                 }));
-                // if (result.data!.length > 0) {
-                //     setTimeLeft(result.data![0].timeLimitSec);
-                // }
 
-                console.log(
-                    "Fetch questions completed round:",
-                    roundNumber + 1
-                );
-                // Mark questions as ready
-                // setQuestionsReady(true);
-                // Only stop loading if personality game is already complete
-                // if (hasCompletedPersonalityGame) {
                 setIsLoadingQuestions(false);
-                // }
             } catch (error) {
                 console.error("Failed to load questions:", error);
                 if (
@@ -128,13 +115,6 @@ export default function QuizPage() {
         loadQuestions();
     }, []);
 
-    // Effect to handle when questions finish loading after personality game is complete
-    // useEffect(() => {
-    //     if (questionsReady && hasCompletedPersonalityGame) {
-    //         setIsLoadingQuestions(false);
-    //     }
-    // }, [questionsReady, hasCompletedPersonalityGame]);
-
     const handleGoToPersonalization = () => {
         window.location.href = "/personalization";
     };
@@ -143,17 +123,42 @@ export default function QuizPage() {
         setShowTokenDialog(false);
     };
 
-    const handlePersonalityGameComplete = (selectedIds: string[]) => {
-        console.log("[Quiz] User personality selections:", selectedIds);
-        setPersonalitySelections(selectedIds);
+    const handlePersonalityGameComplete = () => {
         setHasCompletedPersonalityGame(true);
-
-        // If questions are already ready, stop loading immediately
-        // if (questionsReady) {
-        //     setIsLoadingQuestions(false);
-        // }
-        // Otherwise, show loading screen until questions are fetched
     };
+
+    const prepareFinalResults = useCallback(() => {
+        return {
+            ...userResults,
+            question_and_answer: {
+                ...userResults.question_and_answer,
+                answers: [
+                    ...userResults.question_and_answer.answers,
+                    ...(selectedChoice !== null && currentQuestion
+                        ? [
+                              {
+                                  question_id: currentQuestion.question_id,
+                                  question_number:
+                                      currentQuestion.question_number,
+                                  label: currentQuestion.choices[selectedChoice]
+                                      .label,
+                                  cash: currentQuestion.choices[selectedChoice]
+                                      .cash,
+                                  happiness:
+                                      currentQuestion.choices[selectedChoice]
+                                          .happiness,
+                                  stress: currentQuestion.choices[
+                                      selectedChoice
+                                  ].stress,
+                                  tag: currentQuestion.choices[selectedChoice]
+                                      .tag,
+                              },
+                          ]
+                        : []),
+                ],
+            },
+        };
+    }, [userResults, selectedChoice, currentQuestion]);
 
     const handleSelect = useCallback(
         (choiceIndex: number | null) => {
@@ -165,15 +170,6 @@ export default function QuizPage() {
                 choiceIndex !== null
                     ? currentQuestion.choices[choiceIndex]
                     : null;
-            const answer: QuizAnswer = {
-                questionId: currentQuestion.question_id,
-                choiceIndex,
-                timeSpentSec: currentQuestion.timeLimitSec - timeLeft,
-                isTimeout: choiceIndex === null,
-                selectedChoice: choice || undefined,
-            };
-
-            setAnswers((prev) => [...prev, answer]);
 
             if (choice) {
                 setUserResults((prev) => ({
@@ -202,8 +198,6 @@ export default function QuizPage() {
                 }));
             }
 
-            console.log("[v0] Current user results:", userResults);
-
             setTimeout(() => {
                 if (currentQuestionIndex < questions.length - 1) {
                     setCurrentQuestionIndex((prev) => prev + 1);
@@ -211,7 +205,6 @@ export default function QuizPage() {
                     setTimeLeft(nextQuestion.timeLimitSec);
                     setSelectedChoice(null);
                 } else {
-                    console.log("[v0] Final user results:", userResults);
                     setIsComplete(true);
                     fetchResults();
                 }
@@ -227,9 +220,8 @@ export default function QuizPage() {
         ]
     );
 
-    const fetchResults = async () => {
+    const fetchResults = useCallback(async () => {
         try {
-            console.log("[v0] Starting results fetch...");
             setIsLoadingResults(true);
             setResultsError(null);
 
@@ -239,82 +231,35 @@ export default function QuizPage() {
                 throw new Error("No authentication token found");
             }
 
-            const finalResults = {
-                ...userResults,
-                question_and_answer: {
-                    ...userResults.question_and_answer,
-                    answers: [
-                        ...userResults.question_and_answer.answers,
-                        ...(selectedChoice !== null && currentQuestion
-                            ? [
-                                  {
-                                      question_id: currentQuestion.question_id,
-                                      question_number:
-                                          currentQuestion.question_number,
-                                      label: currentQuestion.choices[
-                                          selectedChoice
-                                      ].label,
-                                      cash: currentQuestion.choices[
-                                          selectedChoice
-                                      ].cash,
-                                      happiness:
-                                          currentQuestion.choices[
-                                              selectedChoice
-                                          ].happiness,
-                                      stress: currentQuestion.choices[
-                                          selectedChoice
-                                      ].stress,
-                                      tag: currentQuestion.choices[
-                                          selectedChoice
-                                      ].tag,
-                                  },
-                              ]
-                            : []),
-                    ],
-                },
-            };
-
-            console.log(
-                "[v0] Fetching results with final data:",
-                finalResults.question_and_answer
-            );
+            const finalResults = prepareFinalResults();
             const result = await fetchResultsFromServer(
                 token,
                 finalResults.question_and_answer
             );
 
-            console.log("[v0] Results fetch response:", result);
-
             if (result.success && result.data && result.data.data) {
-                console.log("[v0] Results fetched successfully");
                 setApiResults(result.data.data);
                 setResultsError(null);
             } else {
-                console.error("[v0] Results fetch failed:", result.error);
+                console.error("Results fetch failed:", result.error);
                 setResultsError(
                     result.error || "Failed to fetch results from server"
                 );
             }
         } catch (error) {
-            console.error("[v0] Results fetch error:", error);
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error occurred";
-            setResultsError(errorMessage);
+            console.error("Results fetch error:", error);
+            setResultsError(getErrorMessage(error));
         } finally {
             setIsLoadingResults(false);
         }
-    };
+    }, [prepareFinalResults, getErrorMessage]);
 
     const retryFetchResults = () => {
-        console.log("[v0] Retrying results fetch...");
         fetchResults();
     };
 
-    const handleNextRound = async () => {
+    const handleNextRound = useCallback(async () => {
         try {
-            console.log("Starting next round...");
             setRoundNumber((prev) => prev + 1);
             setHasCompletedPersonalityGame(false);
             setIsLoadingQuestions(true);
@@ -323,52 +268,12 @@ export default function QuizPage() {
             const token = localStorage.getItem("jaifoo_jwt_token");
 
             if (!token) {
-                console.log("No token found for next round");
                 setShowTokenDialog(true);
                 setIsLoadingQuestions(false);
                 return;
             }
 
-            const finalResults = {
-                ...userResults,
-                question_and_answer: {
-                    ...userResults.question_and_answer,
-                    answers: [
-                        ...userResults.question_and_answer.answers,
-                        ...(selectedChoice !== null && currentQuestion
-                            ? [
-                                  {
-                                      question_id: currentQuestion.question_id,
-                                      question_number:
-                                          currentQuestion.question_number,
-                                      label: currentQuestion.choices[
-                                          selectedChoice
-                                      ].label,
-                                      cash: currentQuestion.choices[
-                                          selectedChoice
-                                      ].cash,
-                                      happiness:
-                                          currentQuestion.choices[
-                                              selectedChoice
-                                          ].happiness,
-                                      stress: currentQuestion.choices[
-                                          selectedChoice
-                                      ].stress,
-                                      tag: currentQuestion.choices[
-                                          selectedChoice
-                                      ].tag,
-                                  },
-                              ]
-                            : []),
-                    ],
-                },
-            };
-
-            console.log(
-                "[v0] Fetching new questions with previous Q&A:",
-                finalResults.question_and_answer
-            );
-
+            const finalResults = prepareFinalResults();
             const result = await fetchQuestions(
                 token,
                 finalResults.question_and_answer
@@ -379,11 +284,6 @@ export default function QuizPage() {
                     result.error || "Failed to fetch new questions"
                 );
             }
-
-            console.log(
-                "New questions fetched successfully:",
-                result.data.length
-            );
 
             const allQuestions = [...questions, ...result.data];
             setQuestions(allQuestions);
@@ -408,21 +308,14 @@ export default function QuizPage() {
             setIsComplete(false);
             setCurrentQuestionIndex(questions.length);
             setSelectedChoice(null);
-            // setTimeLeft(result.data[0].timeLimitSec);
             setApiResults(null);
-
-            console.debug("Ready for starting round started successfully");
         } catch (error) {
-            console.error("[v0] Failed to start next round:", error);
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to load next round";
-            setResultsError(errorMessage);
+            console.error("Failed to start next round:", error);
+            setResultsError(getErrorMessage(error));
         } finally {
             setIsLoadingQuestions(false);
         }
-    };
+    }, [prepareFinalResults, questions, getErrorMessage]);
 
     useEffect(() => {
         if (
@@ -510,23 +403,18 @@ export default function QuizPage() {
     };
 
     useEffect(() => {
-        console.log(
-            "hasCompletedPersonalityGame:",
-            hasCompletedPersonalityGame,
-            "isLoadingQuestions:",
-            isLoadingQuestions
-        );
-        if (hasCompletedPersonalityGame && !isLoadingQuestions) {
-            console.log(
-                "Personality game completed and questions loaded. Hiding loading screen for round:",
-                roundNumber + 1
-            );
-
+        if (
+            hasCompletedPersonalityGame &&
+            !isLoadingQuestions &&
+            questions.length > 0
+        ) {
             setTimeLeft(questions[0].timeLimitSec);
-
-            // setIsLoadingQuestions(false);
         }
-    }, [hasCompletedPersonalityGame, isLoadingQuestions]);
+    }, [hasCompletedPersonalityGame, isLoadingQuestions, questions]);
+
+    useEffect(() => {
+        console.log("User Results Updated:", userResults);
+    }, [userResults]);
 
     // Render Authentication Dialog
     if (showTokenDialog) {
