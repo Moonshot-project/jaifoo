@@ -7,6 +7,7 @@ import AuthenticationDialog from "@/features/quiz/AuthenticationDialog";
 import LoadingPage from "@/features/quiz/LoadingPage";
 import QuizResultsPage from "@/features/quiz/QuizResultsPage";
 import ActiveQuizPage from "@/features/quiz/ActiveQuizPage";
+import PersonalityGameWrapper from "@/features/quiz/PersonalityGameWrapper";
 import {
     QuizQuestion,
     QuizAnswer,
@@ -15,6 +16,7 @@ import {
 } from "@/features/quiz/types";
 
 export default function QuizPage() {
+    // Core quiz states
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(5);
     const [answers, setAnswers] = useState<QuizAnswer[]>([]);
@@ -24,6 +26,7 @@ export default function QuizPage() {
             answers: [],
         },
     });
+
     const [isComplete, setIsComplete] = useState(false);
     const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
     const [totals, setTotals] = useState({
@@ -31,9 +34,16 @@ export default function QuizPage() {
         happiness: 0,
         cash: 15000,
     });
+
+    // Question stages and data
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+    // const [questionsReady, setQuestionsReady] = useState(false);
+
+    // Missing auth key dialog state
     const [showTokenDialog, setShowTokenDialog] = useState(false);
+
+    // Results loading and error states
     const [apiResults, setApiResults] = useState<
         ApiResultResponse["data"] | null
     >(null);
@@ -41,9 +51,17 @@ export default function QuizPage() {
     const [resultsError, setResultsError] = useState<string | null>(null);
     const [roundNumber, setRoundNumber] = useState(0);
 
+    // New states for personality game flow
+    const [hasCompletedPersonalityGame, setHasCompletedPersonalityGame] =
+        useState(false);
+    const [personalitySelections, setPersonalitySelections] = useState<
+        string[]
+    >([]);
+
     const currentQuestion = questions[currentQuestionIndex];
     const hasFetchedRef = useRef(false);
 
+    // Effect to fetch questions on mount
     useEffect(() => {
         const loadQuestions = async () => {
             if (hasFetchedRef.current) return;
@@ -51,26 +69,22 @@ export default function QuizPage() {
 
             try {
                 setIsLoadingQuestions(true);
-                console.log("[v0] Checking for authentication token...");
+
                 const token = localStorage.getItem("jaifoo_jwt_token");
-                console.log("[v0] Token found:", token ? "Yes" : "No");
                 if (!token) {
-                    console.log("[v0] No token found, showing dialog...");
                     setShowTokenDialog(true);
                     setIsLoadingQuestions(false);
                     return;
                 }
-                console.log("[v0] Fetching questions with server action...");
+
+                console.log("Fetching questions round:", roundNumber + 1);
                 const result = await fetchQuestions(token);
                 if (!result.success || !result.data) {
                     throw new Error(
                         result.error || "Failed to fetch questions"
                     );
                 }
-                console.log(
-                    "[v0] Questions fetched successfully:",
-                    result.data.length
-                );
+
                 setQuestions(result.data!);
                 setUserResults((prev) => ({
                     question_and_answer: {
@@ -85,11 +99,22 @@ export default function QuizPage() {
                         })),
                     },
                 }));
-                if (result.data!.length > 0) {
-                    setTimeLeft(result.data![0].timeLimitSec);
-                }
+                // if (result.data!.length > 0) {
+                //     setTimeLeft(result.data![0].timeLimitSec);
+                // }
+
+                console.log(
+                    "Fetch questions completed round:",
+                    roundNumber + 1
+                );
+                // Mark questions as ready
+                // setQuestionsReady(true);
+                // Only stop loading if personality game is already complete
+                // if (hasCompletedPersonalityGame) {
+                setIsLoadingQuestions(false);
+                // }
             } catch (error) {
-                console.error("[v0] Failed to load questions:", error);
+                console.error("Failed to load questions:", error);
                 if (
                     error instanceof Error &&
                     error.message.includes("authentication")
@@ -97,12 +122,18 @@ export default function QuizPage() {
                     localStorage.removeItem("jaifoo_jwt_token");
                     setShowTokenDialog(true);
                 }
-            } finally {
                 setIsLoadingQuestions(false);
             }
         };
         loadQuestions();
     }, []);
+
+    // Effect to handle when questions finish loading after personality game is complete
+    // useEffect(() => {
+    //     if (questionsReady && hasCompletedPersonalityGame) {
+    //         setIsLoadingQuestions(false);
+    //     }
+    // }, [questionsReady, hasCompletedPersonalityGame]);
 
     const handleGoToPersonalization = () => {
         window.location.href = "/personalization";
@@ -110,6 +141,18 @@ export default function QuizPage() {
 
     const handleStayOnQuiz = () => {
         setShowTokenDialog(false);
+    };
+
+    const handlePersonalityGameComplete = (selectedIds: string[]) => {
+        console.log("[Quiz] User personality selections:", selectedIds);
+        setPersonalitySelections(selectedIds);
+        setHasCompletedPersonalityGame(true);
+
+        // If questions are already ready, stop loading immediately
+        // if (questionsReady) {
+        //     setIsLoadingQuestions(false);
+        // }
+        // Otherwise, show loading screen until questions are fetched
     };
 
     const handleSelect = useCallback(
@@ -271,14 +314,16 @@ export default function QuizPage() {
 
     const handleNextRound = async () => {
         try {
-            console.log("[v0] Starting next round...");
+            console.log("Starting next round...");
+            setRoundNumber((prev) => prev + 1);
+            setHasCompletedPersonalityGame(false);
             setIsLoadingQuestions(true);
             setResultsError(null);
 
             const token = localStorage.getItem("jaifoo_jwt_token");
 
             if (!token) {
-                console.log("[v0] No token found for next round");
+                console.log("No token found for next round");
                 setShowTokenDialog(true);
                 setIsLoadingQuestions(false);
                 return;
@@ -336,7 +381,7 @@ export default function QuizPage() {
             }
 
             console.log(
-                "[v0] New questions fetched successfully:",
+                "New questions fetched successfully:",
                 result.data.length
             );
 
@@ -363,11 +408,10 @@ export default function QuizPage() {
             setIsComplete(false);
             setCurrentQuestionIndex(questions.length);
             setSelectedChoice(null);
-            setTimeLeft(result.data[0].timeLimitSec);
+            // setTimeLeft(result.data[0].timeLimitSec);
             setApiResults(null);
-            setRoundNumber((prev) => prev + 1);
 
-            console.log("[v0] Next round started successfully");
+            console.debug("Ready for starting round started successfully");
         } catch (error) {
             console.error("[v0] Failed to start next round:", error);
             const errorMessage =
@@ -465,6 +509,25 @@ export default function QuizPage() {
         }
     };
 
+    useEffect(() => {
+        console.log(
+            "hasCompletedPersonalityGame:",
+            hasCompletedPersonalityGame,
+            "isLoadingQuestions:",
+            isLoadingQuestions
+        );
+        if (hasCompletedPersonalityGame && !isLoadingQuestions) {
+            console.log(
+                "Personality game completed and questions loaded. Hiding loading screen for round:",
+                roundNumber + 1
+            );
+
+            setTimeLeft(questions[0].timeLimitSec);
+
+            // setIsLoadingQuestions(false);
+        }
+    }, [hasCompletedPersonalityGame, isLoadingQuestions]);
+
     // Render Authentication Dialog
     if (showTokenDialog) {
         return (
@@ -475,8 +538,18 @@ export default function QuizPage() {
         );
     }
 
-    // Render Loading Page
-    if (isLoadingQuestions || questions.length === 0) {
+    // Render Personality Game (first thing user sees)
+    if (!hasCompletedPersonalityGame) {
+        return (
+            <PersonalityGameWrapper
+                roundNumber={roundNumber}
+                onComplete={handlePersonalityGameComplete}
+            />
+        );
+    }
+
+    // Render Loading Page (after personality game is complete)
+    if (isLoadingQuestions && hasCompletedPersonalityGame) {
         return (
             <LoadingPage
                 isLoadingQuestions={isLoadingQuestions}

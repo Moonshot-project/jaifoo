@@ -84,3 +84,23 @@ export interface ApiResultResponse {
     message: string;
     error?: string;
 }
+
+export interface PersonalityBubble {
+    id: string;
+    emoji: string;
+    label: string;
+    size: "small" | "medium" | "large";
+    position: {
+        x: number;
+        y: number;
+    };
+    category: string;
+}
+
+export interface PersonalityMiniGameProps {
+    title: string;
+    subtitle: string;
+    maxSelections: number;
+    bubbles: PersonalityBubble[];
+    onComplete: (selectedIds: string[]) => void;
+}
