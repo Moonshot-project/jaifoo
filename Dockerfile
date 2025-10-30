@@ -1,6 +1,6 @@
 # Multi-stage build for Next.js application
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM node:23.4.0-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --force
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM node:23.4.0-alpine AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -29,7 +29,7 @@ ENV NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
 RUN npm run build
 
 # Stage 3: Runner (Production)
-FROM node:20-alpine AS runner
+FROM node:23.4.0-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
