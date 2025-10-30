@@ -1,16 +1,17 @@
 # Multi-stage build for Next.js application
 # Stage 1: Dependencies
-FROM node:20-slim AS deps
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies - Ubuntu has build tools by default
+# Install dependencies (use npm install instead of npm ci)
 RUN npm install --force
 
 # Stage 2: Builder
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -28,7 +29,7 @@ ENV NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
 RUN npm run build
 
 # Stage 3: Runner (Production)
-FROM node:20-slim AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
