@@ -1,13 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { authenticateWithLine, getLineAuthUrl } from "@/app/actions/lineAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function JoinPage() {
+function JoinPageContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -187,5 +187,17 @@ export default function JoinPage() {
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function JoinPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#ffc92b] flex items-center justify-center">
+                <div className="text-gray-900">Loading...</div>
+            </div>
+        }>
+            <JoinPageContent />
+        </Suspense>
     );
 }
